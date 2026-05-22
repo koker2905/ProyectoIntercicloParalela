@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Test GPU - UPSGlam</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white p-8 font-sans">
+    <div class="max-w-4xl mx-auto bg-gray-800 p-6 rounded-xl shadow-2xl">
+        <h1 class="text-3xl font-bold mb-6 text-yellow-500">Panel de Pruebas CUDA</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-4 bg-gray-700 p-4 rounded-lg">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Imagen:</label>
+                    <input type="file" id="imageInput" class="w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-blue-600 file:text-white">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-1">Filtro:</label>
+                    <select id="filterType" class="w-full bg-gray-800 text-white rounded p-2 border border-gray-600">
+                        <option value="gaussian_blur">Gaussian Blur (Suavizado)</option>
+                        <option value="box_blur">Box Blur (Promedio)</option>
+                        <option value="high_boost">High-Boost (Nitidez)</option>
+                        <option value="emboss">Emboss (Relieve)</option>
+                        <option value="ups">Identidad UPS (Duotono)</option>
+                        <option value="pixelate">Pixelado (8-bits)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium mb-1">Valor del Slider: <span id="sliderValDisplay">15</span></label>
+                    <input type="range" id="sliderValue" min="3" max="255" value="15" class="w-full" oninput="document.getElementById('sliderValDisplay').innerText = this.value">
+                    <p class="text-xs text-gray-400 mt-1">Controla tamaño de máscara, bloques o umbral según el filtro.</p>
+                </div>
+
+                <button onclick="procesarImagen()" class="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-2 rounded transition mt-4">
+                    Ejecutar en GPU
+                </button>
+            </div>
+
+            <div>
+                <h3 class="text-lg font-bold mb-2">Métricas de Ejecución:</h3>
+                <pre id="metricsDisplay" class="bg-black text-green-400 p-4 rounded text-xs overflow-x-auto h-32">Esperando procesamiento...</pre>
+            </div>
+        </div>
+
+        <div class="mt-6 text-center">
+            <h3 class="text-lg font-bold mb-2 text-left">Resultado:</h3>
+            <img id="resultImage" class="max-h-[500px] mx-auto rounded-lg hidden border-2 border-yellow-500 shadow-lg">
+        </div>
+    </div>
+
+    <script>
+        async function procesarImagen() {
+            const fileInput = document.getElementById('imageInput');
+            if (!fileInput.files[0]) return alert("Sube una imagen primero.");
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('filter_type', document.getElementById('filterType').value);
+            formData.append('slider_value', document.getElementById('sliderValue').value);
+
+            try {
+                const res = await fetch('http://localhost:5000/process', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!res.ok) throw new Error(await res.text());
+                
+                const data = await res.json();
+                
+                // Mostrar imagen procesada
+                document.getElementById('resultImage').src = "data:image/jpeg;base64," + data.image;
+                document.getElementById('resultImage').classList.remove('hidden');
+                
+                // Mostrar métricas (verificando el formato de tiempo en minutos)
+                document.getElementById('metricsDisplay').innerText = JSON.stringify(data.metrics, null, 2);
+            } catch (err) {
+                alert("Error de procesamiento: " + err.message);
+            }
+        }
+    </script>
+</body>
+</html>
