@@ -1,8 +1,13 @@
 services:
-  gpu-service:
+  python-gpu:
     build: .
     ports:
       - "5000:5000"
+    # ESTA ES LA MAGIA: Conecta tu carpeta actual con la del contenedor
+    volumes:
+      - .:/app
+    # SOBREESCRIBE EL COMANDO DEL DOCKERFILE PARA ACTIVAR EL HOT RELOAD
+    command: uvicorn main:app --host 0.0.0.0 --port 5000 --reload
     deploy:
       resources:
         reservations:
